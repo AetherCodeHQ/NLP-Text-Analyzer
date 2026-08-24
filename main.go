@@ -1,49 +1,44 @@
-
 package main
 
 import (
 	"fmt"
-	"io/ioutil"
 	"os"
-	"path/filepath"
 	"strings"
 )
 
 func main() {
-	dir := "."
-	if len(os.Args) > 1 {
-		dir = os.Args[1]
+	if len(os.Args) < 2 {
+		fmt.Println("Usage: nlp-analyzer <text-file>")
+		return
 	}
-	files := 0
-	lines := 0
-	var sizes []int64
-	filepath.Walk(dir, func(p string, info os.FileInfo, err error) error {
-		if err != nil || info.IsDir() {
-			return nil
-		}
-		if strings.HasPrefix(info.Name(), ".") {
-			return nil
-		}
-		files++
-		lines += countLines(p)
-		sizes = append(sizes, info.Size())
-		return nil
-	})
-	fmt.Printf("files=%d lines=%d size=%d\n", files, lines, sum(sizes))
-}
-
-func countLines(p string) int {
-	b, err := ioutil.ReadFile(p)
+	data, err := os.ReadFile(os.Args[1])
 	if err != nil {
-		return 0
+		fmt.Println("Error:", err)
+		return
 	}
-	return strings.Count(string(b), "\n") + 1
+	text := string(data)
+	words := strings.Fields(text)
+	sentences := strings.Split(text, ".")
+	uniqueWords := map[string]bool{}
+	for _, w := range words {
+		w = strings.ToLower(strings.Trim(w, ".,!?;:"))
+		if len(w) > 0 {
+			uniqueWords[w] = true
+		}
+	}
+	fmt.Println("NLP Text Analyzer")
+	fmt.Println("=================")
+	fmt.Printf("Words:        %d\n", len(words))
+	fmt.Printf("Unique words: %d\n", len(uniqueWords))
+	fmt.Printf("Sentences:    %d\n", len(sentences))
+	fmt.Printf("Avg word len: %.1f chars\n", avgWordLen(words))
+	fmt.Printf("Vocab rich:   %.1f%%\n", float64(len(uniqueWords))/float64(len(words)+1)*100)
 }
 
-func sum(xs []int64) int64 {
-	var s int64
-	for _, x := range xs {
-		s += x
+func avgWordLen(words []string) float64 {
+	total := 0
+	for _, w := range words {
+		total += len(w)
 	}
-	return s
+	return float64(total) / float64(len(words)+1)
 }
